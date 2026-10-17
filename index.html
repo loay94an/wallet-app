@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>💰 المحفظة المالية</title>
+<meta name="theme-color" content="#7c3aed">
+<meta name="description" content="تطبيق متكامل لإدارة الأموال والأعمال والديون والمفكرة — يعمل offline">
+
+<!-- ✅ PWA Meta Tags -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-96.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/icon-72.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="محفظتي">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="المحفظة المالية">
+
+<!-- خطوط وأيقونات -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+
+<!-- مكتبات PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- CSS -->
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="purple">
+
+<!-- شاشة التحميل -->
+<div id="loading-overlay">
+  <div style="width:80px;height:80px;border:4px solid rgba(124,58,237,.3);border-top-color:#7c3aed;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px"></div>
+  <div style="font-size:18px;font-weight:800;margin-bottom:10px" id="loading-title">جاري تحميل البيانات...</div>
+  <div style="font-size:14px;color:#8b8bb5" id="loading-subtitle">يرجى الانتظار</div>
+</div>
+
+<!-- شاشة القفل -->
+<div class="lock-screen" id="lock-screen">
+  <div class="lock-content">
+    <div class="lock-icon"><span class="material-icons">lock</span></div>
+    <div class="lock-title">المحفظة المالية</div>
+    <div class="lock-subtitle" id="lock-subtitle">أدخل رمز الدخول</div>
+    <div class="lock-tabs">
+      <button class="lock-tab active" id="tab-pin" onclick="switchLockMode('pin')">🔢 رمز PIN</button>
+      <button class="lock-tab" id="tab-pattern" onclick="switchLockMode('pattern')">🔷 النمط</button>
+    </div>
+    <div id="pin-mode">
+      <div class="pin-dots" id="pin-dots"></div>
+      <div class="pin-pad" id="pin-pad"></div>
+      <div class="lock-error" id="pin-error"></div>
+    </div>
+    <div id="pattern-mode" style="display:none">
+      <div class="pattern-container">
+        <svg class="pattern-svg" id="pattern-svg" viewBox="0 0 220 220"></svg>
+        <div class="pattern-grid" id="pattern-grid"></div>
+      </div>
+      <div class="lock-error" id="pattern-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- الهيدر -->
+<div class="header">
+  <h1><span class="material-icons">account_balance_wallet</span>المحفظة المالية</h1>
+  <div class="header-actions">
+    <button class="icon-btn" onclick="lockApp()" title="قفل"><span class="material-icons">lock</span></button>
+    <button class="icon-btn" onclick="openModal('settings')"><span class="material-icons">settings</span></button>
+  </div>
+</div>
+
+<!-- الصفحات -->
+<div class="page active" id="page-dashboard"></div>
+<div class="page" id="page-wallet"></div>
+<div class="page" id="page-people"></div>
+<div class="page" id="page-work"></div>
+<div class="page" id="page-info"></div>
+<div class="page" id="page-tools"></div>
+<div class="page" id="page-notebook"></div>
+
+<!-- التنقل السفلي -->
+<div class="bottom-nav">
+  <button class="nav-item active" onclick="showPage('dashboard',this)"><span class="material-icons">dashboard</span>الرئيسية</button>
+  <button class="nav-item" onclick="showPage('wallet',this)"><span class="material-icons">account_balance_wallet</span>المحفظة</button>
+  <button class="nav-item" onclick="showPage('people',this)"><span class="material-icons">people</span>حساباتي</button>
+  <button class="nav-item" onclick="showPage('work',this)"><span class="material-icons">work</span>العمل</button>
+  <button class="nav-item" onclick="showPage('info',this)"><span class="material-icons">hub</span>المعلومات</button>
+  <button class="nav-item" onclick="showPage('tools',this)"><span class="material-icons">build</span>الأدوات</button>
+</div>
+
+<button class="nb-fab" id="nb-fab" onclick="nbHandleAdd()"><span class="material-icons">add</span></button>
+
+<!-- المودالات + التوست + التأكيد -->
+<div id="modals-container"></div>
+<div class="confirm-dialog" id="confirm-dialog">
+  <div class="confirm-box">
+    <h4><span class="material-icons">warning</span><span id="confirm-title">تأكيد</span></h4>
+    <p id="confirm-message">هل أنت متأكد؟</p>
+    <div class="confirm-actions">
+      <button class="btn btn-danger" id="confirm-ok">تأكيد</button>
+      <button class="btn btn-ghost" onclick="closeConfirm()">إلغاء</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- ✅ زر تثبيت PWA (يظهر تلقائيًا عند الإمكان) -->
+<div id="pwa-install-container" style="display:none">
+  <button id="pwa-install-btn" onclick="installPWA()">
+    <span class="material-icons">install_mobile</span>
+    <span>تثبيت التطبيق</span>
+  </button>
+</div>
+
+<!-- ✅ إشعار تحديث PWA -->
+<div id="pwa-update-banner" style="display:none">
+  <span>🔄 يوجد تحديث جديد للتطبيق</span>
+  <button onclick="updatePWA()">تحديث الآن</button>
+  <button onclick="dismissUpdateBanner()" style="background:none;border:none;color:inherit;cursor:pointer;font-size:20px;padding:0 8px">×</button>
+</div>
+
+<!-- JavaScript -->
+<script src="js/core.js"></script>
+<script src="js/ui-pages.js"></script>
+<script src="js/ui-dashboard.js"></script>
+<script src="js/ui-work.js"></script>
+<script src="js/ui-tools.js"></script>
+<script src="js/ui-notebook.js"></script>
+<script src="js/init.js"></script>
+
+<!-- ✅ PWA Registration & Install Logic -->
+<script>
+(function () {
+  'use strict';
+
+  // ============ 📱 PWA INSTALL ============
+  let deferredPrompt = null;
+  const installContainer = document.getElementById('pwa-install-container');
+  const installBtn = document.getElementById('pwa-install-btn');
+
+  // استمع لحدث beforeinstallprompt
+  window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('✅ PWA: beforeinstallprompt fired');
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installContainer) {
+      installContainer.style.display = 'block';
+    }
+  });
+
+  // دالة التثبيت (تُستدعى من الزر)
+  window.installPWA = async function () {
+    if (!deferredPrompt) {
+      if (typeof toast === 'function') toast('⚠️ التثبيت غير متاح حاليًا', 'error');
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log('📱 PWA: User choice =', outcome);
+    if (outcome === 'accepted') {
+      if (installContainer) installContainer.style.display = 'none';
+      if (typeof toast === 'function') toast('✅ تم تثبيت التطبيق');
+    }
+    deferredPrompt = null;
+  };
+
+  // عند التثبيت بنجاح
+  window.addEventListener('appinstalled', () => {
+    console.log('✅ PWA: App installed');
+    if (installContainer) installContainer.style.display = 'none';
+    if (typeof toast === 'function') toast('🎉 تم تثبيت التطبيق بنجاح');
+    deferredPrompt = null;
+  });
+
+  // ============ 🔄 SERVICE WORKER ============
+  let newWorker = null;
+  const updateBanner = document.getElementById('pwa-update-banner');
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js', { scope: './' })
+        .then(reg => {
+          console.log('✅ PWA: SW registered, scope =', reg.scope);
+
+          // تحقق من التحديثات كل ساعة
+          setInterval(() => reg.update(), 60 * 60 * 1000);
+
+          // استمع لتحديثات جديدة
+          reg.addEventListener('updatefound', () => {
+            newWorker = reg.installing;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('🔄 PWA: New version available');
+                if (updateBanner) updateBanner.style.display = 'flex';
+              }
+            });
+          });
+        })
+        .catch(err => {
+          console.warn('⚠️ PWA: SW registration failed:', err);
+        });
+
+      // عند تغيير controller (تحديث)
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        console.log('🔄 PWA: Controller changed — reloading');
+        window.location.reload();
+      });
+    });
+  }
+
+  // دالة التحديث
+  window.updatePWA = function () {
+    if (!newWorker) {
+      window.location.reload();
+      return;
+    }
+    newWorker.postMessage({ type: 'SKIP_WAITING' });
+    if (updateBanner) updateBanner.style.display = 'none';
+  };
+
+  // إغلاق إشعار التحديث
+  window.dismissUpdateBanner = function () {
+    if (updateBanner) updateBanner.style.display = 'none';
+  };
+
+  // ============ 🎨 STYLES للأزرار ============
+  const style = document.createElement('style');
+  style.textContent = `
+    #pwa-install-container {
+      position: fixed;
+      bottom: 95px;
+      left: 16px;
+      z-index: 900;
+      animation: slideUpIn .4s ease;
+    }
+    #pwa-install-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      color: #fff;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 14px;
+      font-family: 'Tajawal', sans-serif;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(124,58,237,.5);
+      transition: transform .2s, box-shadow .2s;
+    }
+    #pwa-install-btn:hover {
+      box-shadow: 0 12px 32px rgba(124,58,237,.7);
+      transform: translateY(-2px);
+    }
+    #pwa-install-btn:active {
+      transform: scale(.95);
+    }
+    #pwa-install-btn .material-icons {
+      font-size: 20px;
+    }
+    #pwa-update-banner {
+      position: fixed;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #10b981, #34d399);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-family: 'Tajawal', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 8px 24px rgba(16,185,129,.5);
+      z-index: 950;
+      max-width: 90%;
+      animation: slideDownIn .4s ease;
+    }
+    #pwa-update-banner button {
+      background: #fff;
+      color: #10b981;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .2s;
+    }
+    #pwa-update-banner button:hover {
+      transform: scale(1.05);
+    }
+    @keyframes slideUpIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideDownIn {
+      from { opacity: 0; transform: translate(-50%, -20px); }
+      to   { opacity: 1; transform: translate(-50%, 0); }
+    }
+    @media (max-width: 400px) {
+      #pwa-install-btn { font-size: 12px; padding: 10px 14px; }
+      #pwa-update-banner { font-size: 12px; padding: 10px 14px; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // ============ 🎯 SHORTCUTS (اختصارات) ============
+  // التنقل حسب ?page= في الرابط
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const page = params.get('page');
+      const action = params.get('action');
+
+      if (page && typeof showPage === 'function') {
+        const navButtons = document.querySelectorAll('.nav-item');
+        let targetBtn = null;
+        navButtons.forEach(btn => {
+          if (btn.textContent.includes(page === 'notebook' ? 'الأدوات' : page)) targetBtn = btn;
+        });
+        showPage(page, targetBtn);
+      }
+
+      if (action === 'add-transaction' && typeof openModal === 'function') {
+        setTimeout(() => openModal('transaction'), 500);
+      }
+
+      // مسح query string بعد المعالجة
+      if (page || action) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }, 1500);
+  });
+
+})();
+</script>
+
+</body>
+</html>

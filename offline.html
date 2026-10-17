@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لا يوجد اتصال — المحفظة المالية</title>
+<meta name="theme-color" content="#7c3aed">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Tajawal', sans-serif;
+    background: linear-gradient(135deg, #0a0a1a, #1a0a2e);
+    color: #e8e8ff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+    overflow: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 20% 10%, rgba(124,58,237,.2), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(236,72,153,.15), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 400px;
+    width: 100%;
+  }
+  .icon {
+    font-size: 100px;
+    margin-bottom: 20px;
+    animation: float 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(124,58,237,.6));
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 900;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #7c3aed, #a855f7, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  p {
+    font-size: 16px;
+    color: #8b8bb5;
+    line-height: 1.8;
+    margin-bottom: 8px;
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(239,68,68,.15);
+    border: 1px solid rgba(239,68,68,.3);
+    color: #ef4444;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    margin: 20px 0;
+  }
+  .status::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: #ef4444;
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .5; transform: scale(1.3); }
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: #fff;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 14px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(124,58,237,.4);
+    transition: transform .2s, box-shadow .2s;
+    margin-top: 10px;
+  }
+  .btn:active {
+    transform: scale(.95);
+  }
+  .btn:hover {
+    box-shadow: 0 15px 40px rgba(124,58,237,.6);
+  }
+  .hint {
+    font-size: 12px;
+    color: #8b8bb5;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(45,45,85,.5);
+    line-height: 1.7;
+  }
+  .hint strong {
+    color: #a855f7;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="icon">📡</div>
+  <h1>لا يوجد اتصال بالإنترنت</h1>
+  <p>يبدو أنك غير متصل حاليًا</p>
+  <div class="status">غير متصل</div>
+  
+  <p>لكن لا تقلق! بياناتك محفوظة بأمان على جهازك.</p>
+  
+  <button class="btn" onclick="location.reload()">
+    🔄 حاول مرة أخرى
+  </button>
+  
+  <div class="hint">
+    <strong>💡 نصيحة:</strong> هذا التطبيق يعمل offline بالكامل.
+    حاول فتحه من الأيقونة على الشاشة الرئيسية.
+  </div>
+</div>
+
+<script>
+  // إعادة التحميل التلقائي عند عودة الاتصال
+  window.addEventListener('online', () => {
+    console.log('✅ عاد الاتصال — إعادة التحميل...');
+    location.reload();
+  });
+  
+  // عرض حالة الاتصال الحالية
+  if (navigator.onLine) {
+    console.log('⚠️ navigator.onLine = true لكن الصفحة offline');
+  }
+</script>
+</body>
+</html>
